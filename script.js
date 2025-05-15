@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeRanking: document.getElementById('close-ranking')
     };
 
-    // Mensagens de status fixas (para erros, vitórias e empates)
     const statusMessages = [
         "$ Iniciando sistema de jogo...",
         "✅ Jogador X venceu!",
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "> Aguardando jogada do jogador..."
     ];
 
-    // Frases temáticas de ataque e defesa para mostrar no box de status
     const frasesAtaque = [
         "> Exploit detectado! Tentando invadir o sistema...",
         "🛡️ Patch aplicado! Fortalecendo a defesa...",
@@ -42,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "🛡️ Atualização de segurança em progresso..."
     ];
 
-    // Estado do jogo
+    let primeiraJogadaFeita = false; // Flag para controlar frase da primeira jogada
+
     const estadoJogo = {
         board: ['', '', '', '', '', '', '', '', ''],
         currentPlayer: 'X',
@@ -56,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameHistory: []
     };
 
-    // Sons
     const sons = {
         move: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3'),
         win: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3'),
@@ -64,14 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
         error: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3')
     };
 
-    // Controle global do intervalo do typeWriter para evitar sobreposição
     let typingInterval = null;
-
-    // Efeito de máquina de escrever corrigido
     function typeWriter(element, text, speed = 50) {
         if (typingInterval) clearInterval(typingInterval);
 
-        // Limpa espaços extras e quebras
         text = text.replace(/\s+/g, ' ').trim();
 
         let i = 0;
@@ -90,23 +84,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }, speed);
     }
 
-    // Inicialização do jogo
     function iniciarJogo() {
         estadoJogo.board = ['', '', '', '', '', '', '', '', ''];
         estadoJogo.currentPlayer = 'X';
         estadoJogo.gameOver = false;
+        primeiraJogadaFeita = false; // reset flag
 
         atualizarTabuleiro();
         atualizarStatus();
         atualizarIndicadorJogador();
-        definirMensagem(`Vez do Jogador ${estadoJogo.currentPlayer}`, 'info');
+        definirMensagem(statusMessages[0], 'info'); // "$ Iniciando sistema de jogo..."
 
-        // Frase inicial temática no box de status
-        const fraseInicial = frasesAtaque[Math.floor(Math.random() * frasesAtaque.length)];
-        typeWriter(elementos.status, fraseInicial);
+        typeWriter(elementos.status, statusMessages[0]);
     }
 
-    // Cria o tabuleiro
     function criarTabuleiro() {
         elementos.board.innerHTML = '';
         for (let i = 0; i < 9; i++) {
@@ -118,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Atualiza o tabuleiro na tela com ícones FontAwesome
     function atualizarTabuleiro() {
         const cells = document.querySelectorAll('.cell');
         estadoJogo.board.forEach((valor, index) => {
@@ -134,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Processa uma jogada
     function fazerJogada(index) {
         if (estadoJogo.gameOver || estadoJogo.board[index] !== '') {
             tocarSom(sons.error);
@@ -146,61 +135,61 @@ document.addEventListener('DOMContentLoaded', () => {
         tocarSom(sons.move);
         atualizarTabuleiro();
 
-        // Verifica se há um vencedor
+        if (!primeiraJogadaFeita) {
+            // Frase fixa na primeira jogada
+            typeWriter(elementos.status, frasesAtaque[0]); // "> Exploit detectado! Tentando invadir o sistema..."
+            primeiraJogadaFeita = true;
+        } else {
+            // Frases aleatórias depois da primeira jogada
+            if (!estadoJogo.gameOver) {
+                const aleatoria = frasesAtaque[Math.floor(Math.random() * (frasesAtaque.length -1)) +1]; // evitar a frase[0]
+                typeWriter(elementos.status, aleatoria);
+            }
+        }
+
         if (verificarVitoria(estadoJogo.currentPlayer)) {
             finalizarJogo(estadoJogo.currentPlayer);
             return;
         }
 
-        // Verifica empate
         if (verificarEmpate()) {
             finalizarJogo('draw');
             return;
         }
 
-        // Alterna jogador
         estadoJogo.currentPlayer = estadoJogo.currentPlayer === 'X' ? 'O' : 'X';
         atualizarIndicadorJogador();
         definirMensagem(`Vez do Jogador ${estadoJogo.currentPlayer}`, 'info');
-
-        // Mostra uma frase temática aleatória no box de status
-        const fraseAleatoria = frasesAtaque[Math.floor(Math.random() * frasesAtaque.length)];
-        typeWriter(elementos.status, fraseAleatoria);
     }
 
-    // Verifica se há um vencedor
     function verificarVitoria(player) {
         const winPatterns = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
+            [0,1,2], [3,4,5], [6,7,8],
+            [0,3,6], [1,4,7], [2,5,8],
+            [0,4,8], [2,4,6]
         ];
 
         return winPatterns.some(pattern => {
-            const [a, b, c] = pattern;
+            const [a,b,c] = pattern;
             if (estadoJogo.board[a] === player &&
                 estadoJogo.board[b] === player &&
                 estadoJogo.board[c] === player) {
 
-                pattern.forEach(index => {
-                    document.querySelector(`.cell[data-index="${index}"]`).classList.add('winner');
+                pattern.forEach(i => {
+                    document.querySelector(`.cell[data-index="${i}"]`).classList.add('winner');
                 });
-
                 return true;
             }
             return false;
         });
     }
 
-    // Verifica empate
     function verificarEmpate() {
         return !estadoJogo.board.includes('') && !verificarVitoria('X') && !verificarVitoria('O');
     }
 
-    // Finaliza o jogo
     function finalizarJogo(resultado) {
         estadoJogo.gameOver = true;
-
         if (resultado === 'X') {
             estadoJogo.scores.playerX++;
             elementos.playerXScore.textContent = estadoJogo.scores.playerX;
@@ -220,16 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
             definirMensagem('🤝 Empate!', 'info');
             tocarSom(sons.draw);
         }
-
         salvarPartida(resultado);
     }
 
-    // Atualiza o status do jogo (simples)
     function atualizarStatus() {
         typeWriter(elementos.status, statusMessages[0]);
     }
 
-    // Atualiza o indicador de jogador atual com ícones
     function atualizarIndicadorJogador() {
         if (estadoJogo.currentPlayer === 'X') {
             elementos.playerIndicator.innerHTML = '<i class="fa-solid fa-virus"></i>';
@@ -240,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Alterna som
     function alternarSom() {
         estadoJogo.somAtivado = !estadoJogo.somAtivado;
         elementos.botaoSom.innerHTML = estadoJogo.somAtivado ?
@@ -248,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
             '<i class="fas fa-volume-mute"></i> Som';
     }
 
-    // Toca som
     function tocarSom(som) {
         if (estadoJogo.somAtivado) {
             som.currentTime = 0;
@@ -256,34 +240,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Configura mensagem na tela (mensagem dentro da caixa de status)
     function definirMensagem(texto, tipo = 'info') {
         elementos.mensagem.textContent = texto;
         elementos.caixaMensagem.className = 'message-box ' + tipo;
     }
 
-    // Salva partida no histórico
     function salvarPartida(resultado) {
         const partida = {
             data: new Date().toLocaleString('pt-BR'),
             modo: '2 Jogadores',
-            vencedor: resultado === 'X' ?
-                'Jogador X' :
-                resultado === 'O' ?
-                    'Jogador O' : 'Empate',
+            vencedor: resultado === 'X' ? 'Jogador X' : resultado === 'O' ? 'Jogador O' : 'Empate',
             tabuleiro: [...estadoJogo.board]
         };
-
         estadoJogo.gameHistory.unshift(partida);
-
         if (estadoJogo.gameHistory.length > 10) {
             estadoJogo.gameHistory.pop();
         }
-
         atualizarRanking();
     }
 
-    // Atualiza o ranking
     function atualizarRanking() {
         elementos.rankingList.innerHTML = estadoJogo.gameHistory.map((partida, index) => `
             <li>
@@ -295,13 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    // Mostra ranking
     function mostrarRanking() {
         elementos.ranking.classList.remove('hidden');
         elementos.overlay.classList.remove('hidden');
     }
 
-    // Remove listener e esconde o botão modo para evitar uso
     if (elementos.botaoModo) {
         elementos.botaoModo.style.display = 'none';
         elementos.botaoModo.removeEventListener('click', () => { });
@@ -319,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
         elementos.overlay.classList.add('hidden');
     });
 
-    // Inicia o jogo
     criarTabuleiro();
     iniciarJogo();
 });
